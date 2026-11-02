@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="es-AR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Punto Bici · Control de Horas y Plata | Ignacio & Juan</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #060A12;
+      color: #F8FAFC;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .bank-hero-card {
+      background: linear-gradient(145deg, #0D1B2A 0%, #09131F 55%, #061A17 100%);
+      box-shadow: 0 12px 35px -10px rgba(16, 185, 129, 0.25);
+    }
+    .clock-active-card {
+      background: linear-gradient(145deg, rgba(6, 78, 59, 0.55) 0%, rgba(15, 23, 42, 0.95) 100%);
+      box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.4);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) brightness(0.9);
+      cursor: pointer;
+    }
+    @media print {
+      body {
+        background: #FFFFFF !important;
+        color: #000000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-emerald-500 selection:text-slate-950">
+
+  <!-- CABECERA SIMPLE Y CLARA -->
+  <header class="sticky top-0 z-30 bg-[#060A12]/95 backdrop-blur-xl border-b border-slate-800 no-print">
+    <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-emerald-950/60 shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <circle cx="5.5" cy="17.5" r="3.5"/>
+            <circle cx="18.5" cy="17.5" r="3.5"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 6a1 1 0 100-2 1 1 0 000 2zm-3 11.5V14l-3-3 4-3 2 3h2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">PUNTO BICI</div>
+          <h1 class="text-sm sm:text-base font-bold text-white leading-tight">
+            Ignacio <span class="text-slate-400 font-normal">· Jefe:</span> Juan
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btnOpenRateModal" type="button" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-left transition flex items-center gap-1.5">
+          <div>
+            <div class="text-[10px] text-slate-400 leading-none">Valor Hora</div>
+            <div id="headerHourlyRate" class="text-xs font-mono font-bold text-emerald-400 tabular-nums mt-0.5">$ 5.000</div>
+          </div>
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+          </svg>
+        </button>
+
+        <button id="btnForceSync" type="button" class="flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 transition" title="Sincronizar con Firebase">
+          <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+          <span id="syncLabel" class="sr-only">Conectando...</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- HORA Y FECHA DE ARGENTINA EN VIVO -->
+    <div class="bg-slate-950 border-t border-slate-800/80 px-4 py-2">
+      <div class="max-w-xl mx-auto flex items-center justify-between gap-2 text-xs">
+        <span id="liveArgDate" class="font-semibold text-slate-200 capitalize truncate">Cargando fecha...</span>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-[11px] text-slate-400">Hora AR:</span>
+          <span id="liveArgClock" class="font-mono font-bold text-emerald-400 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800 tabular-nums">--:--:--</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL (DISEÑO MÓVIL BANCARIO INTUITIVO DE 1 SOLA COLUMNA) -->
+  <main class="max-w-xl mx-auto px-4 pt-4 space-y-5">
+
+    <!-- =================================================================== -->
+    <!-- PASO 1: EL RELOJ AUTOMÁTICO EN VIVO (SIGUE CONTANDO AL CERRAR APP) -->
+    <!-- =================================================================== -->
+    <section id="liveClockCard" class="rounded-3xl p-5 bg-slate-900/95 border-2 border-slate-800 transition-all">
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <div id="liveTimerIconBox" class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-slate-300">1. Reloj de Trabajo en Vivo</span>
+        </div>
+        <span id="liveShiftBadge" class="text-[11px] font-mono font-bold uppercase px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+          Apagado
+        </span>
+      </div>
+
+      <!-- EXPLICACIÓN CLARA -->
+      <p id="liveShiftSubtext" class="text-sm text-slate-300 leading-snug mb-4">
+        Cuando llegás a <strong class="text-white">Punto Bici</strong>, tocá el botón verde. <strong class="text-emerald-400">Podés cerrar la app o apagar la pantalla:</strong> el reloj queda guardado y sigue contando solo.
+      </p>
+
+      <!-- PANTALLA GIGANTE CUANDO ESTÁ CONTANDO EN VIVO -->
+      <div id="liveShiftMetrics" class="hidden mb-4 p-4 rounded-2xl bg-slate-950/90 border border-emerald-500/40 text-center space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-[11px] font-semibold">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>Contando en vivo (Sigue activo aunque cierres la app)</span>
+        </div>
+
+        <div class="pt-1">
+          <div class="text-xs text-slate-400 uppercase font-semibold">Plata ganada en este turno</div>
+          <div id="liveShiftMoney" class="text-4xl sm:text-5xl font-mono font-black text-emerald-400 tabular-nums mt-0.5">+ $ 0 ARS</div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-around">
+          <div>
+            <div class="text-[11px] text-slate-400">Tiempo trabajando</div>
+            <div id="liveShiftElapsed" class="text-xl font-mono font-bold text-white tabular-nums">00:00:00</div>
+          </div>
+          <div class="h-8 w-px bg-slate-800"></div>
+          <div>
+            <div class="text-[11px] text-slate-400">Hora de entrada</div>
+            <div id="liveShiftStartInfo" class="text-base font-mono font-bold text-amber-300 tabular-nums">--:-- hs</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÓN PARA EMPEZAR A TRABAJAR -->
+      <div id="idleShiftControls" class="space-y-2.5">
+        <button id="btnStartLiveShift" type="button" class="w-full py-4 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-base sm:text-lg shadow-xl shadow-emerald-950/60 transition flex items-center justify-center gap-3">
+          <span class="w-3 h-3 rounded-full bg-slate-950 animate-pulse"></span>
+          <span>Fichar Entrada Ahora</span>
+        </button>
+
+        <!-- ACCIONES RÁPIDAS SECUNDARIAS MUY CLARAS -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button id="btnQuickOpenManual" type="button" class="py-3 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <span>✍️ Anotar hora a mano</span>
+          </button>
+          <button id="btnQuickMarkNonWorked" type="button" class="py-3 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <span>🚫 Hoy no trabajé</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BOTONES CUANDO EL RELOJ ESTÁ CORRIENDO -->
+      <div id="liveShiftActiveControls" class="hidden flex-col gap-2.5">
+        <button id="btnFinishLiveShift" type="button" class="w-full py-4 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.99] text-slate-950 font-black text-base sm:text-lg shadow-xl shadow-amber-950/60 transition flex items-center justify-center gap-2.5">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Fichar Salida y Guardar</span>
+        </button>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button id="btnAdjustLiveStart" type="button" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition">
+            ✏️ Corregir hora de entrada
+          </button>
+          <button id="btnCancelLiveShift" type="button" class="py-2.5 px-3 rounded-xl bg-slate-950 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 border border-slate-800 text-xs font-semibold transition">
+            Cancelar reloj
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PASO 2: TU RESUMEN BANCARIO DE LA SEMANA (CUÁNTO TE DEBE JUAN)      -->
+    <!-- =================================================================== -->
+    <section class="bank-hero-card rounded-3xl p-5 border border-emerald-500/30 space-y-4">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">2. Tu Plata de la Semana</span>
+        <span id="activePeriodBadge" class="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          Esta Semana
+        </span>
+      </div>
+
+      <!-- MONTO PRINCIPAL GIGANTE -->
+      <div class="bg-slate-950/70 rounded-2xl p-4 border border-slate-800/90">
+        <div class="text-xs text-slate-300 font-medium">Total ganado en este período:</div>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="heroTotalAmount" class="text-4xl sm:text-5xl font-mono font-black text-white tabular-nums">$ 0</span>
+          <span class="text-sm font-mono font-bold text-emerald-400">ARS</span>
+        </div>
+
+        <!-- SEPARACIÓN CLARA: FALTA COBRAR vs YA PAGADO -->
+        <div class="grid grid-cols-2 gap-2.5 mt-4 pt-3 border-t border-slate-800/80">
+          <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+            <div class="text-[11px] text-amber-200 font-medium">⏳ Falta que Juan pague</div>
+            <div id="heroPendingAmount" class="text-lg font-mono font-extrabold text-amber-300 tabular-nums mt-0.5">$ 0</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+            <div class="text-[11px] text-emerald-200 font-medium">✅ Ya pagado por Juan</div>
+            <div id="heroPaidAmount" class="text-lg font-mono font-extrabold text-emerald-300 tabular-nums mt-0.5">$ 0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 DATOS CLAROS DE LA SEMANA -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80">
+          <div class="text-[11px] text-slate-400">Total Horas</div>
+          <div id="kpiTotalHours" class="text-base font-mono font-bold text-white tabular-nums mt-0.5">0h 00m</div>
+          <div id="kpiDecimalHours" class="text-[10px] font-mono text-emerald-400 tabular-nums">0.00 hs</div>
+        </div>
+        <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80">
+          <div class="text-[11px] text-slate-400">Días Trabajados</div>
+          <div id="kpiWorkedDays" class="text-base font-mono font-bold text-white tabular-nums mt-0.5">0 días</div>
+          <div id="kpiAvgDaily" class="text-[10px] font-mono text-slate-400 tabular-nums">Prom: $ 0</div>
+        </div>
+        <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80">
+          <div class="text-[11px] text-slate-400">No Trabajados</div>
+          <div id="kpiNonWorkedDays" class="text-base font-mono font-bold text-amber-300 tabular-nums mt-0.5">0 días</div>
+          <div class="text-[10px] text-slate-400">Francos / Feriados</div>
+        </div>
+        <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80">
+          <div class="text-[11px] text-slate-400">Precio por Hora</div>
+          <div id="kpiHourlyRate" class="text-base font-mono font-bold text-emerald-400 tabular-nums mt-0.5">$ 5.000</div>
+          <div class="text-[10px] text-slate-400">Punto Bici</div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE LIQUIDACIÓN SEMANAL -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <button id="btnOpenSummaryModal" type="button" class="w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg transition flex items-center justify-center gap-2">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <span>Resumen Semanal p/ Juan</span>
+        </button>
+
+        <button id="btnMarkPeriodPaid" type="button" class="w-full py-3.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 font-bold text-sm transition flex items-center justify-center gap-2">
+          <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Liquidar Pendientes</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PASO 3: ANOTAR O EDITAR UN DÍA A MANO (SIMPLE, PASO POR PASO)       -->
+    <!-- =================================================================== -->
+    <section id="sectionForm" class="rounded-3xl bg-slate-900/95 border border-slate-800 p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">3. Anotar un Día a Mano</span>
+          <h2 id="formTitle" class="text-base font-bold text-white mt-0.5">Cargá tus horas o un día que no fuiste</h2>
+        </div>
+        <button id="btnResetForm" type="button" class="hidden px-3 py-1.5 rounded-xl bg-amber-500/20 text-xs font-bold text-amber-300 border border-amber-500/30">
+          Cancelar edición
+        </button>
+      </div>
+
+      <!-- PASO A: ¿TRABAJASTE O NO TRABAJASTE? -->
+      <div class="space-y-1.5">
+        <div class="text-xs font-bold text-slate-300">Paso 1: ¿Qué querés anotar?</div>
+        <div class="grid grid-cols-2 gap-2.5 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
+          <button id="tabTypeWorked" type="button" class="py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 shadow">
+            <span>Día Trabajado</span>
+          </button>
+          <button id="tabTypeNonWorked" type="button" class="py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
+            <span>Día No Trabajado</span>
+          </button>
+        </div>
+      </div>
+
+      <form id="shiftForm" class="space-y-4" novalidate>
+        <input type="hidden" id="editRecordId" value="" />
+
+        <!-- PASO B: ¿QUÉ FECHA FUE? -->
+        <div class="space-y-2 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/80">
+          <div class="flex items-center justify-between gap-2">
+            <label for="inputDate" class="text-xs font-bold text-slate-200">Paso 2: ¿Qué día fue?</label>
+            <div class="flex items-center gap-1.5">
+              <button type="button" id="btnDateToday" class="text-xs font-bold px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Hoy</button>
+              <button type="button" id="btnDateYesterday" class="text-xs font-bold px-3 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700">Ayer</button>
+            </div>
+          </div>
+
+          <input id="inputDate" type="date" required class="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:outline-none text-base font-mono font-bold text-white" />
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-xs text-slate-400">Día seleccionado:</span>
+            <span id="detectedDayBadge" class="text-xs font-mono font-extrabold text-emerald-400 capitalize">--</span>
+          </div>
+        </div>
+
+        <!-- PASO C (OPCIÓN 1): SI TRABAJÓ -> HORA DE ENTRADA Y SALIDA -->
+        <div id="workedFieldsContainer" class="space-y-4">
+          <div class="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800/80 space-y-3">
+            <div class="text-xs font-bold text-slate-200">Paso 3: ¿A qué hora entraste y a qué hora saliste?</div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- ENTRADA -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="inputStartTime" class="text-xs font-extrabold text-emerald-400 uppercase">Hora de Entrada</label>
+                  <button type="button" id="btnSetStartNow" class="text-[11px] font-mono font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">Ahora</button>
+                </div>
+                <input id="inputStartTime" type="time" value="09:00" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500 focus:outline-none text-xl font-mono font-black text-white tabular-nums" />
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" data-quick-start="08:00" class="quick-start-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">08:00</button>
+                  <button type="button" data-quick-start="08:30" class="quick-start-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">08:30</button>
+                  <button type="button" data-quick-start="09:00" class="quick-start-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">09:00</button>
+                  <button type="button" data-quick-start="14:00" class="quick-start-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">14:00</button>
+                </div>
+              </div>
+
+              <!-- SALIDA -->
+              <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="inputEndTime" class="text-xs font-extrabold text-amber-400 uppercase">Hora de Salida</label>
+                  <button type="button" id="btnSetEndNow" class="text-[11px] font-mono font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">Ahora</button>
+                </div>
+                <input id="inputEndTime" type="time" value="17:00" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-emerald-500 focus:outline-none text-xl font-mono font-black text-white tabular-nums" />
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" data-quick-end="13:00" class="quick-end-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">13:00</button>
+                  <button type="button" data-quick-end="17:00" class="quick-end-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">17:00</button>
+                  <button type="button" data-quick-end="18:00" class="quick-end-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">18:00</button>
+                  <button type="button" data-quick-end="20:00" class="quick-end-btn flex-1 text-xs font-mono font-semibold py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">20:00</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- OPCIONES SIMPLES: DESCANSO, VALOR HORA Y ESTADO -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <div>
+                <label for="inputBreakMinutes" class="text-[11px] font-semibold text-slate-400">¿Paraste a comer?</label>
+                <select id="inputBreakMinutes" class="mt-1 w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white">
+                  <option value="0">No, corrido (0 min)</option>
+                  <option value="15">Restar 15 min</option>
+                  <option value="30">Restar 30 min</option>
+                  <option value="45">Restar 45 min</option>
+                  <option value="60">Restar 1 hora</option>
+                  <option value="120">Restar 2 horas</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="inputRate" class="text-[11px] font-semibold text-slate-400">Precio por Hora ($)</label>
+                <input id="inputRate" type="number" min="100" step="100" value="5000" class="mt-1 w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono font-bold text-emerald-400" />
+              </div>
+
+              <div>
+                <label for="inputPaidStatus" class="text-[11px] font-semibold text-slate-400">¿Juan ya lo pagó?</label>
+                <select id="inputPaidStatus" class="mt-1 w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white">
+                  <option value="pending">⏳ Todavía no (Pendiente)</option>
+                  <option value="paid">✅ Sí, ya me lo pagó</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PASO C (OPCIÓN 2): SI NO TRABAJÓ -->
+        <div id="nonWorkedFieldsContainer" class="hidden space-y-3 bg-amber-500/10 p-4 rounded-2xl border border-amber-500/30">
+          <div class="text-xs font-bold text-amber-300">Paso 3: ¿Por qué no se trabajó este día?</div>
+          <p class="text-xs text-amber-100/80">
+            Se guardará como <strong class="text-white">Día No Trabajado ($ 0 ARS y 0 horas)</strong> para que la semana quede prolija y clara para Juan.
+          </p>
+          <div>
+            <label for="inputNonWorkedReason" class="sr-only">Motivo</label>
+            <select id="inputNonWorkedReason" class="w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-amber-500/40 text-sm font-bold text-white">
+              <option value="Franco Semanal / Descanso">Franco Semanal / Descanso</option>
+              <option value="Bicicletería Cerrada (Juan)">Bicicletería Cerrada (Cerró Juan)</option>
+              <option value="Feriado Nacional">Feriado Nacional</option>
+              <option value="Ausencia Avisada / Personal">Día Personal / Avisado a Juan</option>
+              <option value="Clima / Lluvia">Lluvia / Mal Clima</option>
+              <option value="Otro motivo">Otro motivo</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- NOTA OPCIONAL -->
+        <div>
+          <label for="inputNotes" class="text-xs font-semibold text-slate-400">Nota opcional (si querés aclarar algo):</label>
+          <input id="inputNotes" type="text" placeholder="Ej: Armé 3 bicis, me quedé media hora más..." class="mt-1 w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-600" />
+        </div>
+
+        <!-- RESULTADO GIGANTE ANTES DE GUARDAR -->
+        <div class="rounded-2xl bg-slate-950 p-4 border-2 border-emerald-500/30 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-bold uppercase text-slate-400">Resultado de este día</div>
+            <div id="previewScheduleText" class="text-xs font-mono text-slate-300 mt-0.5">09:00 → 17:00</div>
+            <div id="previewDurationText" class="text-lg font-mono font-extrabold text-white tabular-nums mt-0.5">8h 00m</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-bold uppercase text-emerald-400">Plata de este día</div>
+            <div id="previewAmountText" class="text-2xl sm:text-3xl font-mono font-black text-emerald-400 tabular-nums">$ 40.000</div>
+          </div>
+        </div>
+
+        <!-- BOTÓN GUARDAR -->
+        <button id="btnSubmitRecord" type="submit" class="w-full py-4 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-base shadow-xl shadow-emerald-950/60 transition flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span id="btnSubmitText">Guardar Registro en Firebase</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PASO 4: CALENDARIO DE LA SEMANA Y LISTA DE DÍAS CARGADOS            -->
+    <!-- =================================================================== -->
+    <section class="rounded-3xl bg-slate-900/95 border border-slate-800 p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-400">4. Tus Días Anotados</span>
+          <h2 class="text-base font-bold text-white">Control Día por Día</h2>
+        </div>
+
+        <!-- CAMBIAR DE SEMANA -->
+        <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <button id="btnPrevWeek" type="button" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold text-xs transition" title="Semana anterior">
+            ◀ Ant.
+          </button>
+          <span id="weekRangeLabel" class="text-xs font-mono font-bold text-emerald-400 px-2 tabular-nums">Esta Semana</span>
+          <button id="btnNextWeek" type="button" class="px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 font-bold text-xs transition" title="Semana siguiente">
+            Sig. ▶
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTROS SIMPLES -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" data-period="week" class="period-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 transition">
+            Por Semana (Lun–Dom)
+          </button>
+          <button type="button" data-period="month" class="period-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-950 text-slate-300 border border-slate-800 transition">
+            Mes Actual
+          </button>
+          <button type="button" data-period="all" class="period-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-950 text-slate-300 border border-slate-800 transition">
+            Todo el Historial
+          </button>
+        </div>
+
+        <select id="filterTypeSelect" class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 font-semibold">
+          <option value="all">Ver todos los días</option>
+          <option value="worked">Solo días trabajados</option>
+          <option value="non_worked">Solo días no trabajados</option>
+          <option value="pending">Solo falta cobrar</option>
+          <option value="paid">Solo ya cobrados</option>
+        </select>
+      </div>
+
+      <!-- LOS 7 DÍAS DE LA SEMANA (LUNES A DOMINGO) -->
+      <div id="weeklyGridPanel" class="bg-slate-950/80 rounded-2xl p-3.5 border border-slate-800/90 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">Semana de Lunes a Domingo:</span>
+          <span class="text-[11px] text-slate-400">Tocá cualquier día para anotarlo</span>
+        </div>
+        <div id="weeklyDaysGrid" class="grid grid-cols-2 sm:grid-cols-7 gap-2">
+          <!-- Generado por JS -->
+        </div>
+      </div>
+
+      <!-- LISTA DETALLADA DE CADA DÍA -->
+      <div class="rounded-2xl border border-slate-800 overflow-hidden bg-slate-950/50">
+        <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-200">Lista de días guardados</span>
+            <span id="recordsCountBadge" class="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">0</span>
+          </div>
+          <button id="btnExportCSV" type="button" class="text-xs font-mono text-slate-400 hover:text-emerald-400 flex items-center gap-1">
+            <span>Descargar CSV</span>
+          </button>
+        </div>
+
+        <div id="ledgerListContainer" class="divide-y divide-slate-800/80">
+          <!-- Generado por JS -->
+        </div>
+
+        <!-- TOTAL AL PIE DE LA LISTA -->
+        <div class="px-4 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-bold uppercase text-slate-400">Suma Total en Lista</div>
+            <div id="footerSummaryDetails" class="text-xs text-slate-300 font-mono mt-0.5">0 días trabajados · 0h 00m</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-bold uppercase text-emerald-400">Total a Cobrar</div>
+            <div id="footerTotalAmount" class="text-2xl font-mono font-black text-white tabular-nums">$ 0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: RESUMEN SEMANAL PARA MANDARLE A JUAN -->
+  <div id="modalSummary" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="px-5 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-mono uppercase text-emerald-400 font-bold">Listo para WhatsApp o Imprimir</span>
+          <h3 class="text-base font-bold text-white">Resumen de Horas para Juan · Punto Bici</h3>
+        </div>
+        <button id="btnCloseSummaryModal" type="button" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-4">
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed select-all" id="summaryReceiptText"></div>
+      </div>
+
+      <div class="px-5 py-4 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-end gap-2.5">
+        <button id="btnPrintSummary" type="button" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+          Imprimir
+        </button>
+        <button id="btnCopySummary" type="button" class="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black transition">
+          Copiar Resumen para Juan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIAR VALOR HORA O CORREGIR HORA DE ENTRADA DEL RELOJ -->
+  <div id="modalRate" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl">
+      <div class="px-5 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">Precio de la Hora · Punto Bici</h3>
+        <button id="btnCloseRateModal" type="button" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-slate-300 leading-relaxed">
+          ¿Cuánto te paga Juan por cada hora de trabajo en Punto Bici? (Por defecto <strong class="text-emerald-400">$ 5.000</strong>).
+        </p>
+        <div>
+          <label for="modalRateInput" class="text-xs font-bold text-slate-300">Valor de 1 Hora ($ ARS)</label>
+          <input id="modalRateInput" type="number" min="100" step="100" value="5000" class="mt-1 w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-xl font-mono font-black text-emerald-400" />
+        </div>
+        <button id="btnSaveRateModal" type="button" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition">
+          Guardar Valor Hora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CORREGIR HORA DE ENTRADA DEL RELOJ EN VIVO -->
+  <div id="modalAdjustLive" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl">
+      <div class="px-5 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">Corregir Hora de Entrada de Hoy</h3>
+        <button id="btnCloseAdjustLive" type="button" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div class="p-5 space-y-4">
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Si entraste a trabajar antes y te olvidaste de apretar el botón, poné acá a qué hora entraste hoy y el reloj se ajusta solo:
+        </p>
+        <div>
+          <label for="inputAdjustLiveTime" class="text-xs font-bold text-slate-300">Hora real a la que entraste hoy:</label>
+          <input id="inputAdjustLiveTime" type="time" value="08:00" class="mt-1 w-full px-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-xl font-mono font-black text-amber-300" />
+        </div>
+        <button id="btnSaveAdjustLive" type="button" class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition">
+          Actualizar Reloj en Vivo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN -->
+  <div id="modalConfirm" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl p-5 space-y-4">
+      <h3 id="confirmModalTitle" class="text-base font-bold text-white">Confirmar</h3>
+      <p id="confirmModalDesc" class="text-xs sm:text-sm text-slate-300 leading-relaxed"></p>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button id="btnConfirmCancel" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
+          Cancelar
+        </button>
+        <button id="btnConfirmAccept" type="button" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-black text-slate-950">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVISO FLOTANTE (TOAST) -->
+  <div id="toastBanner" class="fixed bottom-5 left-4 right-4 sm:left-auto sm:right-5 z-50 hidden items-center gap-2.5 px-4 py-3.5 rounded-2xl bg-slate-900 border-2 border-emerald-500/60 text-xs sm:text-sm font-bold text-white shadow-2xl">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+    <span id="toastMessage">Guardado correctamente</span>
+  </div>
+
+  <!-- LÓGICA DE LA APLICACIÓN Y FIREBASE REALTIME DATABASE -->
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_USvfSXAqZf7hQhJCon0WulnrrINB7cI",
+      authDomain: "the-pic-c437e.firebaseapp.com",
+      databaseURL: "https://the-pic-c437e-default-rtdb.firebaseio.com",
+      projectId: "the-pic-c437e",
+      storageBucket: "the-pic-c437e.appspot.com",
+      messagingSenderId: "750954597180",
+      appId: "1:750954597180:web:d7b67c6b60f4d3bb17ec39"
+    };
+
+    const STORAGE_KEY_RECORDS = 'punto_bici_records_v2';
+    const STORAGE_KEY_RATE = 'punto_bici_hourly_rate_v2';
+    const STORAGE_KEY_LIVE_SHIFT = 'punto_bici_live_shift_v2';
+
+    let state = {
+      hourlyRate: 5000,
+      records: {},
+      // liveShift persists across closing the app/browser:
+      // { active: boolean, startTimestampMs: number, startDateStr: string, startTimeStr: string, dayName: string, updatedAt: number }
+      liveShift: null,
+      formMode: 'worked',
+      periodMode: 'week',
+      filterType: 'all',
+      weekOffset: 0,
+      firebaseConnected: false,
+      firebaseSdkDb: null,
+      firebaseSdkFns: null,
+      confirmCallback: null
+    };
+
+    function safeGetStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function safeSetStorage(key, val) {
+      try {
+        localStorage.setItem(key, JSON.stringify(val));
+      } catch (e) {}
+    }
+
+    // Hora y fecha exacta de Argentina (UTC-3)
+    function getArgentinaNowParts() {
+      const now = new Date();
+      const dateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(now);
+
+      const timeFull = new Intl.DateTimeFormat('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(now);
+
+      const timeShort = timeFull.slice(0, 5);
+
+      const longDateStr = new Intl.DateTimeFormat('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(now);
+
+      return { now, dateStr, timeFull, timeShort, longDateStr };
+    }
+
+    // Convierte Fecha YYYY-MM-DD + Hora HH:MM de Argentina (UTC-3) en timestamp exacto en milisegundos
+    function argentinaDateTimeToTimestampMs(dateStr, timeStr) {
+      try {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [hh, mm] = timeStr.split(':').map(Number);
+        // Argentina es UTC-3 fijo (sin horario de verano)
+        return Date.UTC(y, m - 1, d, hh + 3, mm, 0, 0);
+      } catch (e) {
+        return Date.now();
+      }
+    }
+
+    function getDayInfoFromDateStr(dateStr) {
+      if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return { dayName: 'Día', shortDate: '--/--', fullLabel: '--' };
+      }
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d, 15, 0, 0));
+      const dayName = new Intl.DateTimeFormat('es-AR', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        weekday: 'long'
+      }).format(dt);
+      const capDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+      return {
+        dayName: capDay,
+        shortDate: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`,
+        fullLabel: `${capDay} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`
+      };
+    }
+
+    function formatARS(amount) {
+      const num = Number(amount) || 0;
+      return '$ ' + Math.round(num).toLocaleString('es-AR');
+    }
+
+    function calculateShiftMetrics(startTime, endTime, breakMinutes, hourlyRate) {
+      if (!startTime || !endTime) {
+        return { totalMinutes: 0, hoursInt: 0, minsInt: 0, decimalHours: 0, totalAmount: 0, durationLabel: '0h 00m' };
+      }
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      let startMins = sh * 60 + sm;
+      let endMins = eh * 60 + em;
+      if (endMins < startMins) {
+        endMins += 24 * 60;
+      }
+      const netMinutes = Math.max(0, (endMins - startMins) - (Number(breakMinutes) || 0));
+      const hoursInt = Math.floor(netMinutes / 60);
+      const minsInt = netMinutes % 60;
+      const decimalHours = netMinutes / 60;
+      const totalAmount = Math.round(decimalHours * (Number(hourlyRate) || 5000));
+      const durationLabel = `${hoursInt}h ${String(minsInt).padStart(2, '0')}m`;
+      return { totalMinutes: netMinutes, hoursInt, minsInt, decimalHours, totalAmount, durationLabel };
+    }
+
+    function getWeekBounds(weekOffset = 0) {
+      const { dateStr } = getArgentinaNowParts();
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+      const dow = base.getUTCDay();
+      const diffToMonday = dow === 0 ? -6 : 1 - dow;
+      base.setUTCDate(base.getUTCDate() + diffToMonday + (weekOffset * 7));
+
+      const days = [];
+      const dayNamesShort = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      for (let i = 0; i < 7; i++) {
+        const cur = new Date(base.getTime());
+        cur.setUTCDate(base.getUTCDate() + i);
+        const cy = cur.getUTCFullYear();
+        const cm = String(cur.getUTCMonth() + 1).padStart(2, '0');
+        const cd = String(cur.getUTCDate()).padStart(2, '0');
+        days.push({
+          iso: `${cy}-${cm}-${cd}`,
+          shortLabel: dayNamesShort[i],
+          dayNum: cd,
+          monthNum: cm
+        });
+      }
+      return { startIso: days[0].iso, endIso: days[6].iso, days };
+    }
+
+    function setSyncStatus(status, text) {
+      const dot = document.getElementById('syncDot');
+      const label = document.getElementById('syncLabel');
+      if (!dot || !label) return;
+      dot.className = 'w-2.5 h-2.5 rounded-full ';
+      if (status === 'online') dot.className += 'bg-emerald-400';
+      else if (status === 'syncing') dot.className += 'bg-amber-400 animate-pulse';
+      else dot.className += 'bg-sky-400';
+      label.textContent = text;
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      const textEl = document.getElementById('toastMessage');
+      if (!banner || !textEl) return;
+      textEl.textContent = msg;
+      banner.classList.remove('hidden');
+      banner.classList.add('flex');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }, 3500);
+    }
+
+    function openConfirmModal(title, desc, onConfirm) {
+      const modal = document.getElementById('modalConfirm');
+      document.getElementById('confirmModalTitle').textContent = title;
+      document.getElementById('confirmModalDesc').textContent = desc;
+      state.confirmCallback = onConfirm;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById('modalConfirm');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      state.confirmCallback = null;
+    }
+
+    // RECONCILIACIÓN SEGURA DEL RELOJ EN VIVO (NUNCA SE BORRA AL CERRAR LA APP)
+    function mergeLiveShiftState(incomingCloud) {
+      const localShift = safeGetStorage(STORAGE_KEY_LIVE_SHIFT, null);
+
+      if (!incomingCloud && localShift && localShift.active) {
+        // Tenemos un reloj corriendo localmente y la nube aún no lo tenía: mantenemos el local y lo subimos
+        state.liveShift = localShift;
+        pushLiveShiftToCloud(localShift);
+        renderLiveShiftBar();
+        return;
+      }
+
+      if (incomingCloud && localShift) {
+        const cloudTime = Number(incomingCloud.updatedAt) || 0;
+        const localTime = Number(localShift.updatedAt) || 0;
+        const winner = localTime >= cloudTime ? localShift : incomingCloud;
+        state.liveShift = winner.active ? winner : null;
+        safeSetStorage(STORAGE_KEY_LIVE_SHIFT, winner);
+      } else if (incomingCloud) {
+        state.liveShift = incomingCloud.active ? incomingCloud : null;
+        safeSetStorage(STORAGE_KEY_LIVE_SHIFT, incomingCloud);
+      } else if (localShift) {
+        state.liveShift = localShift.active ? localShift : null;
+      } else {
+        state.liveShift = null;
+      }
+
+      renderLiveShiftBar();
+    }
+
+    async function pushLiveShiftToCloud(shiftStateObj) {
+      if (state.firebaseSdkDb && state.firebaseSdkFns) {
+        try {
+          const { ref, set } = state.firebaseSdkFns;
+          await set(ref(state.firebaseSdkDb, 'punto_bici_ignacio/live_shift'), shiftStateObj);
+          return;
+        } catch (e) {}
+      }
+      try {
+        await fetch('https://the-pic-c437e-default-rtdb.firebaseio.com/punto_bici_ignacio/live_shift.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(shiftStateObj)
+        });
+      } catch (e) {}
+    }
+
+    async function syncLiveShiftToFirebase(activeShiftOrNull) {
+      const payload = activeShiftOrNull
+        ? { ...activeShiftOrNull, active: true, updatedAt: Date.now() }
+        : { active: false, startTimestampMs: null, updatedAt: Date.now() };
+
+      state.liveShift = payload.active ? payload : null;
+      safeSetStorage(STORAGE_KEY_LIVE_SHIFT, payload);
+      renderLiveShiftBar();
+      await pushLiveShiftToCloud(payload);
+    }
+
+    // INICIALIZACIÓN DE FIREBASE Y MEMORIA LOCAL PERSISTENTE
+    async function initFirebaseRealtime() {
+      // 1. Recuperar memoria local al instante (incluyendo v1 si había datos previos)
+      const prevV1Records = safeGetStorage('punto_bici_records_v1', {});
+      const localV2Records = safeGetStorage(STORAGE_KEY_RECORDS, {});
+      state.records = { ...prevV1Records, ...localV2Records };
+
+      state.hourlyRate = Number(safeGetStorage(STORAGE_KEY_RATE, 5000)) || 5000;
+
+      const savedShiftV2 = safeGetStorage(STORAGE_KEY_LIVE_SHIFT, null);
+      const savedShiftV1 = safeGetStorage('punto_bici_live_shift_v1', null);
+      if (savedShiftV2 && savedShiftV2.active) {
+        state.liveShift = savedShiftV2;
+      } else if (savedShiftV1 && savedShiftV1.startTimestampMs) {
+        state.liveShift = { ...savedShiftV1, active: true, updatedAt: Date.now() };
+        safeSetStorage(STORAGE_KEY_LIVE_SHIFT, state.liveShift);
+      }
+
+      renderAll();
+
+      // 2. Consultar Firebase por REST
+      await fetchFromFirebaseRest();
+
+      // 3. Conectar WebSocket en vivo de Firebase
+      const sdkUrls = [
+        {
+          app: 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js',
+          db: 'https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js'
+        },
+        {
+          app: 'https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js',
+          db: 'https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js'
+        }
+      ];
+
+      for (const candidate of sdkUrls) {
+        try {
+          const { initializeApp } = await import(candidate.app);
+          const { getDatabase, ref, set, remove, onValue } = await import(candidate.db);
+          const app = initializeApp(firebaseConfig);
+          const db = getDatabase(app);
+          state.firebaseSdkDb = db;
+          state.firebaseSdkFns = { ref, set, remove, onValue };
+
+          onValue(ref(db, 'punto_bici_ignacio/records'), (snapshot) => {
+            const val = snapshot.val();
+            if (val && typeof val === 'object') {
+              state.records = { ...state.records, ...val };
+              safeSetStorage(STORAGE_KEY_RECORDS, state.records);
+            }
+            state.firebaseConnected = true;
+            setSyncStatus('online', 'Conectado');
+            renderAll();
+          });
+
+          onValue(ref(db, 'punto_bici_ignacio/live_shift'), (snapshot) => {
+            mergeLiveShiftState(snapshot.val());
+          });
+
+          onValue(ref(db, 'punto_bici_ignacio/settings/hourlyRate'), (snapshot) => {
+            const val = snapshot.val();
+            if (val && Number(val) > 0) {
+              state.hourlyRate = Number(val);
+              safeSetStorage(STORAGE_KEY_RATE, state.hourlyRate);
+              document.getElementById('inputRate').value = state.hourlyRate;
+              renderAll();
+            }
+          });
+          break;
+        } catch (err) {}
+      }
+    }
+
+    async function fetchFromFirebaseRest() {
+      try {
+        const res = await fetch('https://the-pic-c437e-default-rtdb.firebaseio.com/punto_bici_ignacio.json');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object') {
+            if (data.records && typeof data.records === 'object') {
+              state.records = { ...state.records, ...data.records };
+              safeSetStorage(STORAGE_KEY_RECORDS, state.records);
+            }
+            if (data.live_shift !== undefined) {
+              mergeLiveShiftState(data.live_shift);
+            }
+            if (data.settings && data.settings.hourlyRate) {
+              state.hourlyRate = Number(data.settings.hourlyRate) || 5000;
+              safeSetStorage(STORAGE_KEY_RATE, state.hourlyRate);
+              document.getElementById('inputRate').value = state.hourlyRate;
+            }
+          }
+          state.firebaseConnected = true;
+          setSyncStatus('online', 'Conectado');
+          renderAll();
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+
+    async function saveRecordToFirebase(record) {
+      state.records[record.id] = record;
+      safeSetStorage(STORAGE_KEY_RECORDS, state.records);
+      renderAll();
+
+      setSyncStatus('syncing', 'Guardando...');
+      let savedCloud = false;
+
+      if (state.firebaseSdkDb && state.firebaseSdkFns) {
+        try {
+          const { ref, set } = state.firebaseSdkFns;
+          await set(ref(state.firebaseSdkDb, `punto_bici_ignacio/records/${record.id}`), record);
+          savedCloud = true;
+        } catch (e) {}
+      }
+
+      if (!savedCloud) {
+        try {
+          const res = await fetch(`https://the-pic-c437e-default-rtdb.firebaseio.com/punto_bici_ignacio/records/${record.id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+          });
+          if (res.ok) savedCloud = true;
+        } catch (e) {}
+      }
+
+      setSyncStatus('online', 'Guardado');
+    }
+
+    async function deleteRecordFromFirebase(id) {
+      delete state.records[id];
+      safeSetStorage(STORAGE_KEY_RECORDS, state.records);
+      renderAll();
+
+      if (state.firebaseSdkDb && state.firebaseSdkFns) {
+        try {
+          const { ref, remove } = state.firebaseSdkFns;
+          await remove(ref(state.firebaseSdkDb, `punto_bici_ignacio/records/${id}`));
+        } catch (e) {}
+      }
+      try {
+        await fetch(`https://the-pic-c437e-default-rtdb.firebaseio.com/punto_bici_ignacio/records/${id}.json`, {
+          method: 'DELETE'
+        });
+      } catch (e) {}
+
+      showToast('Día borrado de la lista');
+    }
+
+    async function saveHourlyRateSetting(newRate) {
+      const rate = Math.max(100, Number(newRate) || 5000);
+      state.hourlyRate = rate;
+      safeSetStorage(STORAGE_KEY_RATE, rate);
+      document.getElementById('inputRate').value = rate;
+      renderAll();
+
+      if (state.firebaseSdkDb && state.firebaseSdkFns) {
+        try {
+          const { ref, set } = state.firebaseSdkFns;
+          await set(ref(state.firebaseSdkDb, 'punto_bici_ignacio/settings/hourlyRate'), rate);
+        } catch (e) {}
+      }
+      try {
+        await fetch('https://the-pic-c437e-default-rtdb.firebaseio.com/punto_bici_ignacio/settings/hourlyRate.json', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rate)
+        });
+      } catch (e) {}
+      showToast(`Precio por hora actualizado a ${formatARS(rate)}`);
+    }
+
+    // RENDERIZAR EL RELOJ EN VIVO (CONTADOR AUTOMÁTICO QUE NO SE CORTA AL CERRAR)
+    function renderLiveShiftBar() {
+      const card = document.getElementById('liveClockCard');
+      const badge = document.getElementById('liveShiftBadge');
+      const subtext = document.getElementById('liveShiftSubtext');
+      const metricsBox = document.getElementById('liveShiftMetrics');
+      const idleControls = document.getElementById('idleShiftControls');
+      const activeControls = document.getElementById('liveShiftActiveControls');
+      const startInfo = document.getElementById('liveShiftStartInfo');
+
+      if (!state.liveShift || !state.liveShift.active || !state.liveShift.startTimestampMs) {
+        card.className = 'rounded-3xl p-5 bg-slate-900/95 border-2 border-slate-800 transition-all';
+        badge.textContent = 'Sin turno activo';
+        badge.className = 'text-[11px] font-mono font-bold uppercase px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700';
+        subtext.innerHTML = 'Cuando llegás a <strong class="text-white">Punto Bici</strong>, tocá el botón verde. <strong class="text-emerald-400">Podés cerrar la app o apagar la pantalla:</strong> el reloj queda guardado y sigue contando solo.';
+        metricsBox.classList.add('hidden');
+        idleControls.classList.remove('hidden');
+        activeControls.classList.add('hidden');
+        activeControls.classList.remove('flex');
+        return;
+      }
+
+      card.className = 'rounded-3xl p-5 clock-active-card border-2 border-emerald-500 transition-all';
+      badge.textContent = '🟢 TRABAJANDO AHORA';
+      badge.className = 'text-[11px] font-mono font-extrabold uppercase px-3 py-1 rounded-full bg-emerald-500 text-slate-950 shadow';
+      subtext.innerHTML = `Entraste el <strong class="text-white">${state.liveShift.dayName}</strong> a las <strong class="text-emerald-300">${state.liveShift.startTimeStr} hs</strong>. Aunque cierres esta ventana, el tiempo sigue corriendo hasta que toques <strong class="text-amber-300">Fichar Salida</strong>.`;
+      if (startInfo) startInfo.textContent = `${state.liveShift.startTimeStr} hs`;
+
+      metricsBox.classList.remove('hidden');
+      idleControls.classList.add('hidden');
+      activeControls.classList.remove('hidden');
+      activeControls.classList.add('flex');
+
+      updateLiveShiftCounter();
+    }
+
+    function updateLiveShiftCounter() {
+      if (!state.liveShift || !state.liveShift.active || !state.liveShift.startTimestampMs) return;
+      const elapsedMs = Math.max(0, Date.now() - Number(state.liveShift.startTimestampMs));
+      const totalSeconds = Math.floor(elapsedMs / 1000);
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+      const formattedElapsed = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      const earned = Math.round((totalSeconds / 3600) * state.hourlyRate);
+
+      const elElapsed = document.getElementById('liveShiftElapsed');
+      const elMoney = document.getElementById('liveShiftMoney');
+      if (elElapsed) elElapsed.textContent = formattedElapsed;
+      if (elMoney) elMoney.textContent = `+ ${formatARS(earned)} ARS`;
+    }
+
+    function getFilteredRecords() {
+      const allList = Object.values(state.records || {}).filter(Boolean);
+      const { dateStr } = getArgentinaNowParts();
+      const currentMonthPrefix = dateStr.slice(0, 7);
+      const weekBounds = getWeekBounds(state.weekOffset);
+
+      return allList
+        .filter((r) => {
+          if (!r || !r.date) return false;
+          if (state.periodMode === 'week') {
+            if (r.date < weekBounds.startIso || r.date > weekBounds.endIso) return false;
+          } else if (state.periodMode === 'month') {
+            if (!r.date.startsWith(currentMonthPrefix)) return false;
+          }
+          if (state.filterType === 'worked' && r.type !== 'worked') return false;
+          if (state.filterType === 'non_worked' && r.type !== 'non_worked') return false;
+          if (state.filterType === 'pending' && (r.type !== 'worked' || r.paidStatus !== 'pending')) return false;
+          if (state.filterType === 'paid' && (r.type !== 'worked' || r.paidStatus !== 'paid')) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          if (a.date !== b.date) return b.date.localeCompare(a.date);
+          return (b.updatedAt || 0) - (a.updatedAt || 0);
+        });
+    }
+
+    function setFormMode(mode) {
+      state.formMode = mode;
+      const tabWorked = document.getElementById('tabTypeWorked');
+      const tabNonWorked = document.getElementById('tabTypeNonWorked');
+      const workedContainer = document.getElementById('workedFieldsContainer');
+      const nonWorkedContainer = document.getElementById('nonWorkedFieldsContainer');
+
+      if (mode === 'worked') {
+        tabWorked.className = 'py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 shadow';
+        tabNonWorked.className = 'py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white';
+        workedContainer.classList.remove('hidden');
+        nonWorkedContainer.classList.add('hidden');
+      } else {
+        tabNonWorked.className = 'py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 bg-amber-500 text-slate-950 shadow';
+        tabWorked.className = 'py-3 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white';
+        workedContainer.classList.add('hidden');
+        nonWorkedContainer.classList.remove('hidden');
+      }
+      updateFormPreview();
+    }
+
+    function updateFormPreview() {
+      const dateVal = document.getElementById('inputDate').value;
+      const dayInfo = getDayInfoFromDateStr(dateVal);
+      document.getElementById('detectedDayBadge').textContent = dayInfo.fullLabel;
+
+      const scheduleEl = document.getElementById('previewScheduleText');
+      const durationEl = document.getElementById('previewDurationText');
+      const amountEl = document.getElementById('previewAmountText');
+
+      if (state.formMode === 'non_worked') {
+        const reason = document.getElementById('inputNonWorkedReason').value;
+        scheduleEl.textContent = `DÍA NO TRABAJADO · ${reason}`;
+        durationEl.textContent = '0 horas';
+        amountEl.textContent = '$ 0';
+        amountEl.className = 'text-2xl sm:text-3xl font-mono font-black text-amber-400 tabular-nums';
+        return;
+      }
+
+      const startVal = document.getElementById('inputStartTime').value;
+      const endVal = document.getElementById('inputEndTime').value;
+      const breakVal = document.getElementById('inputBreakMinutes').value;
+      const rateVal = document.getElementById('inputRate').value || state.hourlyRate;
+
+      const calc = calculateShiftMetrics(startVal, endVal, breakVal, rateVal);
+      scheduleEl.textContent = `Entró ${startVal || '--:--'} hs → Salió ${endVal || '--:--'} hs`;
+      durationEl.textContent = `${calc.durationLabel} (${calc.decimalHours.toFixed(2)} hs)`;
+      amountEl.textContent = formatARS(calc.totalAmount);
+      amountEl.className = 'text-2xl sm:text-3xl font-mono font-black text-emerald-400 tabular-nums';
+    }
+
+    function renderWeeklyGrid() {
+      const panel = document.getElementById('weeklyGridPanel');
+      const grid = document.getElementById('weeklyDaysGrid');
+      const weekLabel = document.getElementById('weekRangeLabel');
+      if (!grid || !panel) return;
+
+      const bounds = getWeekBounds(state.weekOffset);
+      const startParts = bounds.startIso.split('-');
+      const endParts = bounds.endIso.split('-');
+      weekLabel.textContent = `${startParts[2]}/${startParts[1]} al ${endParts[2]}/${endParts[1]}`;
+
+      if (state.periodMode !== 'week') {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+
+      const allRecords = Object.values(state.records || {});
+      const { dateStr: todayIso } = getArgentinaNowParts();
+
+      grid.innerHTML = bounds.days.map((d) => {
+        const dayRecords = allRecords.filter((r) => r && r.date === d.iso);
+        const workedList = dayRecords.filter((r) => r.type === 'worked');
+        const nonWorked = dayRecords.find((r) => r.type === 'non_worked');
+        const isToday = d.iso === todayIso;
+
+        let statusHtml = '';
+        let cardBorder = isToday ? 'border-sky-500/70 bg-slate-900' : 'border-slate-800 bg-slate-900/50';
+
+        if (workedList.length > 0) {
+          const minsSum = workedList.reduce((acc, r) => acc + (Number(r.totalMinutes) || 0), 0);
+          const moneySum = workedList.reduce((acc, r) => acc + (Number(r.totalAmount) || 0), 0);
+          const h = Math.floor(minsSum / 60);
+          const m = minsSum % 60;
+          cardBorder = 'border-emerald-500/50 bg-emerald-950/25';
+          statusHtml = `
+            <div class="mt-1.5 text-xs font-mono font-extrabold text-emerald-400 tabular-nums">${formatARS(moneySum)}</div>
+            <div class="text-[10px] font-mono text-slate-300">${h}h ${String(m).padStart(2, '0')}m</div>
+          `;
+        } else if (nonWorked) {
+          cardBorder = 'border-amber-500/45 bg-amber-950/20';
+          statusHtml = `
+            <div class="mt-1.5 text-[10px] font-mono font-extrabold uppercase text-amber-400">No fue</div>
+            <div class="text-[10px] text-slate-400 truncate">$ 0</div>
+          `;
+        } else {
+          statusHtml = `
+            <div class="mt-1.5 text-[10px] text-slate-500">Vacío</div>
+            <div class="text-[10px] text-emerald-400/80 font-semibold">+ Anotar</div>
+          `;
+        }
+
+        return `
+          <button type="button" data-pick-date="${d.iso}" class="week-day-card text-left p-2.5 rounded-xl border ${cardBorder} hover:border-emerald-400 transition flex flex-col justify-between">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-[11px] font-extrabold uppercase ${isToday ? 'text-sky-400' : 'text-slate-300'}">${d.shortLabel}</span>
+              <span class="text-xs font-mono font-bold text-white">${d.dayNum}/${d.monthNum}</span>
+            </div>
+            ${statusHtml}
+          </button>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.week-day-card').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const iso = btn.getAttribute('data-pick-date');
+          if (iso) {
+            document.getElementById('inputDate').value = iso;
+            updateFormPreview();
+            document.getElementById('sectionForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderAll() {
+      document.getElementById('headerHourlyRate').textContent = formatARS(state.hourlyRate);
+      document.getElementById('kpiHourlyRate').textContent = formatARS(state.hourlyRate);
+
+      const periodBadge = document.getElementById('activePeriodBadge');
+      if (state.periodMode === 'week') {
+        const bounds = getWeekBounds(state.weekOffset);
+        const s = bounds.startIso.split('-');
+        const e = bounds.endIso.split('-');
+        periodBadge.textContent = state.weekOffset === 0
+          ? `Esta Semana (${s[2]}/${s[1]} al ${e[2]}/${e[1]})`
+          : `Semana ${s[2]}/${s[1]} al ${e[2]}/${e[1]}`;
+      } else if (state.periodMode === 'month') {
+        periodBadge.textContent = 'Este Mes';
+      } else {
+        periodBadge.textContent = 'Todo el Historial';
+      }
+
+      const filtered = getFilteredRecords();
+
+      let totalMinutes = 0;
+      let totalAmount = 0;
+      let pendingAmount = 0;
+      let paidAmount = 0;
+      const workedDatesSet = new Set();
+      const nonWorkedDatesSet = new Set();
+
+      filtered.forEach((r) => {
+        if (r.type === 'worked') {
+          workedDatesSet.add(r.date);
+          const mins = Number(r.totalMinutes) || 0;
+          const amt = Number(r.totalAmount) || 0;
+          totalMinutes += mins;
+          totalAmount += amt;
+          if (r.paidStatus === 'paid') paidAmount += amt;
+          else pendingAmount += amt;
+        } else if (r.type === 'non_worked') {
+          nonWorkedDatesSet.add(r.date);
+        }
+      });
+
+      const hInt = Math.floor(totalMinutes / 60);
+      const mInt = totalMinutes % 60;
+      const decHours = totalMinutes / 60;
+      const workedDaysCount = workedDatesSet.size;
+      const nonWorkedDaysCount = nonWorkedDatesSet.size;
+      const avgDaily = workedDaysCount > 0 ? Math.round(totalAmount / workedDaysCount) : 0;
+
+      document.getElementById('heroTotalAmount').textContent = formatARS(totalAmount);
+      document.getElementById('heroPendingAmount').textContent = formatARS(pendingAmount);
+      document.getElementById('heroPaidAmount').textContent = formatARS(paidAmount);
+
+      document.getElementById('kpiTotalHours').textContent = `${hInt}h ${String(mInt).padStart(2, '0')}m`;
+      document.getElementById('kpiDecimalHours').textContent = `${decHours.toFixed(2)} hs exactas`;
+      document.getElementById('kpiWorkedDays').textContent = `${workedDaysCount} ${workedDaysCount === 1 ? 'día' : 'días'}`;
+      document.getElementById('kpiAvgDaily').textContent = `Prom: ${formatARS(avgDaily)}`;
+      document.getElementById('kpiNonWorkedDays').textContent = `${nonWorkedDaysCount} ${nonWorkedDaysCount === 1 ? 'día' : 'días'}`;
+
+      renderWeeklyGrid();
+
+      const listEl = document.getElementById('ledgerListContainer');
+      document.getElementById('recordsCountBadge').textContent = String(filtered.length);
+      document.getElementById('footerSummaryDetails').textContent =
+        `${workedDaysCount} días trabajados · ${nonWorkedDaysCount} no trabajados · ${hInt}h ${String(mInt).padStart(2, '0')}m`;
+      document.getElementById('footerTotalAmount').textContent = formatARS(totalAmount);
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `
+          <div class="p-8 text-center space-y-2">
+            <p class="text-sm font-bold text-slate-300">Todavía no hay días anotados en esta semana</p>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">
+              Usá el botón verde de arriba cuando entrás a trabajar, o anotá tus horarios en el Paso 3.
+            </p>
+          </div>
+        `;
+      } else {
+        listEl.innerHTML = filtered.map((r) => {
+          const dInfo = getDayInfoFromDateStr(r.date);
+          if (r.type === 'non_worked') {
+            return `
+              <div class="p-4 hover:bg-slate-900/60 transition space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <span class="text-sm sm:text-base font-extrabold text-white">${dInfo.fullLabel}</span>
+                    <div class="mt-1">
+                      <span class="inline-block text-xs font-bold px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        🚫 Día No Trabajado · ${escapeHtml(r.reason || 'Franco')}
+                      </span>
+                    </div>
+                    ${r.notes ? `<p class="text-xs text-slate-400 mt-1.5">Nota: ${escapeHtml(r.notes)}</p>` : ''}
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-base font-mono font-extrabold text-slate-400">$ 0</div>
+                    <div class="text-[11px] font-mono text-slate-500">0 horas</div>
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+                  <button type="button" data-edit-id="${r.id}" class="btn-edit-record px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700">
+                    ✏️ Editar
+                  </button>
+                  <button type="button" data-delete-id="${r.id}" class="btn-delete-record px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950/60 text-xs font-bold text-rose-300 border border-slate-800">
+                    🗑️ Borrar
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+
+          const isPaid = r.paidStatus === 'paid';
+          return `
+            <div class="p-4 hover:bg-slate-900/60 transition space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="text-sm sm:text-base font-extrabold text-white">${dInfo.fullLabel}</span>
+                  <div class="text-xs sm:text-sm font-mono text-slate-200 mt-1">
+                    🟢 Entró: <strong class="text-white">${r.startTime} hs</strong> · 🔴 Salió: <strong class="text-white">${r.endTime} hs</strong>
+                  </div>
+                  <div class="text-xs font-mono text-emerald-400 font-bold mt-0.5">
+                    ⏱️ Trabajó: ${r.durationLabel} ${Number(r.breakMinutes) > 0 ? `(con ${r.breakMinutes}m de descanso)` : ''}
+                  </div>
+                  ${r.notes ? `<p class="text-xs text-slate-400 mt-1">Nota: ${escapeHtml(r.notes)}</p>` : ''}
+                </div>
+
+                <div class="text-right shrink-0">
+                  <div class="text-lg sm:text-xl font-mono font-black text-emerald-400 tabular-nums">+ ${formatARS(r.totalAmount)}</div>
+                  <div class="text-[11px] font-mono text-slate-400">a ${formatARS(r.hourlyRate || state.hourlyRate)}/h</div>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/60">
+                <button type="button" data-toggle-paid="${r.id}" class="btn-toggle-paid text-xs font-bold px-3 py-1.5 rounded-xl transition ${
+                  isPaid
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }">
+                  ${isPaid ? '✅ Pagado por Juan (Tocar p/ cambiar)' : '⏳ Falta cobrar (Tocar si Juan pagó)'}
+                </button>
+
+                <div class="flex items-center gap-2">
+                  <button type="button" data-edit-id="${r.id}" class="btn-edit-record px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700">
+                    ✏️ Editar
+                  </button>
+                  <button type="button" data-delete-id="${r.id}" class="btn-delete-record px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-rose-950/60 text-xs font-bold text-rose-300 border border-slate-800">
+                    🗑️ Borrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        listEl.querySelectorAll('.btn-toggle-paid').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-toggle-paid');
+            const rec = state.records[id];
+            if (!rec) return;
+            rec.paidStatus = rec.paidStatus === 'paid' ? 'pending' : 'paid';
+            rec.updatedAt = Date.now();
+            saveRecordToFirebase(rec);
+            showToast(rec.paidStatus === 'paid' ? 'Marcado como Pagado por Juan' : 'Marcado como Pendiente de cobro');
+          });
+        });
+
+        listEl.querySelectorAll('.btn-edit-record').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            loadRecordIntoForm(btn.getAttribute('data-edit-id'));
+          });
+        });
+
+        listEl.querySelectorAll('.btn-delete-record').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-delete-id');
+            const rec = state.records[id];
+            if (!rec) return;
+            const dInfo = getDayInfoFromDateStr(rec.date);
+            openConfirmModal(
+              'Borrar este día',
+              `¿Querés borrar el registro del ${dInfo.fullLabel}?`,
+              () => deleteRecordFromFirebase(id)
+            );
+          });
+        });
+      }
+
+      renderLiveShiftBar();
+    }
+
+    function loadRecordIntoForm(id) {
+      const rec = state.records[id];
+      if (!rec) return;
+      document.getElementById('editRecordId').value = rec.id;
+      document.getElementById('inputDate').value = rec.date;
+      document.getElementById('inputNotes').value = rec.notes || '';
+      document.getElementById('formTitle').textContent = 'Editando Día Guardado';
+      document.getElementById('btnSubmitText').textContent = 'Guardar Cambios en Firebase';
+      document.getElementById('btnResetForm').classList.remove('hidden');
+
+      if (rec.type === 'non_worked') {
+        setFormMode('non_worked');
+        document.getElementById('inputNonWorkedReason').value = rec.reason || 'Franco Semanal / Descanso';
+      } else {
+        setFormMode('worked');
+        document.getElementById('inputStartTime').value = rec.startTime || '09:00';
+        document.getElementById('inputEndTime').value = rec.endTime || '17:00';
+        document.getElementById('inputBreakMinutes').value = String(rec.breakMinutes || 0);
+        document.getElementById('inputRate').value = String(rec.hourlyRate || state.hourlyRate);
+        document.getElementById('inputPaidStatus').value = rec.paidStatus || 'pending';
+      }
+      updateFormPreview();
+      document.getElementById('sectionForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetFormToDefault() {
+      const { dateStr } = getArgentinaNowParts();
+      document.getElementById('editRecordId').value = '';
+      document.getElementById('inputDate').value = dateStr;
+      document.getElementById('inputBreakMinutes').value = '0';
+      document.getElementById('inputRate').value = String(state.hourlyRate);
+      document.getElementById('inputPaidStatus').value = 'pending';
+      document.getElementById('inputNotes').value = '';
+      document.getElementById('formTitle').textContent = 'Cargá tus horas o un día que no fuiste';
+      document.getElementById('btnSubmitText').textContent = 'Guardar Registro en Firebase';
+      document.getElementById('btnResetForm').classList.add('hidden');
+      setFormMode('worked');
+    }
+
+    function buildSummaryReceiptText() {
+      const filtered = getFilteredRecords().slice().sort((a, b) => a.date.localeCompare(b.date));
+      const { longDateStr, timeShort } = getArgentinaNowParts();
+      const periodTitle = document.getElementById('activePeriodBadge').textContent;
+
+      let totalMins = 0;
+      let totalARS = 0;
+      let pendingARS = 0;
+      let paidARS = 0;
+      let workedCount = 0;
+      let nonWorkedCount = 0;
+
+      const lines = [];
+      lines.push('========================================');
+      lines.push('  PUNTO BICI · RESUMEN DE HORAS');
+      lines.push('========================================');
+      lines.push(`Trabajador : Ignacio`);
+      lines.push(`Empleador  : Juan (Punto Bici)`);
+      lines.push(`Período    : ${periodTitle}`);
+      lines.push(`Valor Hora : ${formatARS(state.hourlyRate)} por hora`);
+      lines.push(`Fecha AR   : ${longDateStr} (${timeShort} hs)`);
+      lines.push('----------------------------------------');
+      lines.push('DETALLE DÍA POR DÍA:');
+
+      if (filtered.length === 0) {
+        lines.push('  (Sin días registrados en este período)');
+      } else {
+        filtered.forEach((r) => {
+          const dInfo = getDayInfoFromDateStr(r.date);
+          if (r.type === 'non_worked') {
+            nonWorkedCount++;
+            lines.push(`• ${dInfo.fullLabel}: NO TRABAJÓ (${r.reason || 'Franco'}) -> $ 0`);
+          } else {
+            workedCount++;
+            const mins = Number(r.totalMinutes) || 0;
+            const amt = Number(r.totalAmount) || 0;
+            totalMins += mins;
+            totalARS += amt;
+            if (r.paidStatus === 'paid') paidARS += amt;
+            else pendingARS += amt;
+
+            const statusTag = r.paidStatus === 'paid' ? '[PAGADO]' : '[FALTA COBRAR]';
+            lines.push(
+              `• ${dInfo.fullLabel}: Entró ${r.startTime} hs a ${r.endTime} hs (${r.durationLabel}) = ${formatARS(amt)} ${statusTag}`
+            );
+            if (r.notes) lines.push(`  Nota: ${r.notes}`);
+          }
+        });
+      }
+
+      const h = Math.floor(totalMins / 60);
+      const m = totalMins % 60;
+
+      lines.push('----------------------------------------');
+      lines.push(`Días Trabajados    : ${workedCount}`);
+      lines.push(`Días No Trabajados : ${nonWorkedCount}`);
+      lines.push(`Total de Horas     : ${h} horas ${String(m).padStart(2, '0')} minutos`);
+      lines.push(`TOTAL GANADO       : ${formatARS(totalARS)} ARS`);
+      lines.push(`  - Ya pagado      : ${formatARS(paidARS)} ARS`);
+      lines.push(`  - FALTA PAGAR    : ${formatARS(pendingARS)} ARS`);
+      lines.push('========================================');
+
+      return lines.join('\n');
+    }
+
+    function exportFilteredToCSV() {
+      const filtered = getFilteredRecords();
+      if (filtered.length === 0) {
+        showToast('No hay días para exportar');
+        return;
+      }
+      const headers = ['Fecha', 'Dia', 'Tipo', 'Entrada', 'Salida', 'Horas', 'Valor_Hora_ARS', 'Monto_Total_ARS', 'Estado', 'Nota'];
+      const rows = filtered.map((r) => {
+        const dInfo = getDayInfoFromDateStr(r.date);
+        const tipo = r.type === 'non_worked' ? 'Dia No Trabajado' : 'Dia Trabajado';
+        const estado = r.type === 'non_worked' ? 'No Aplica' : (r.paidStatus === 'paid' ? 'Pagado' : 'Pendiente');
+        const nota = r.type === 'non_worked' ? `${r.reason || ''} ${r.notes || ''}`.trim() : (r.notes || '');
+        return [
+          r.date,
+          dInfo.dayName,
+          tipo,
+          r.startTime || '-',
+          r.endTime || '-',
+          r.durationLabel || '0h 00m',
+          r.hourlyRate || state.hourlyRate,
+          r.totalAmount || 0,
+          estado,
+          `"${String(nota).replace(/"/g, '""')}"`
+        ].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `punto_bici_ignacio_${getArgentinaNowParts().dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Archivo CSV descargado');
+    }
+
+    async function copyTextSafe(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function updatePeriodButtonsUI() {
+      document.querySelectorAll('.period-filter-btn').forEach((btn) => {
+        const p = btn.getAttribute('data-period');
+        if (p === state.periodMode) {
+          btn.className = 'period-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 transition';
+        } else {
+          btn.className = 'period-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-950 text-slate-300 border border-slate-800 transition';
+        }
+      });
+    }
+
+    function setupApp() {
+      const { dateStr } = getArgentinaNowParts();
+      document.getElementById('inputDate').value = dateStr;
+
+      // Reloj en vivo cada segundo + recalcular inmediatamente al volver a abrir la app o desbloquear el celular
+      const updateClock = () => {
+        const { timeFull, longDateStr } = getArgentinaNowParts();
+        const clockEl = document.getElementById('liveArgClock');
+        const dateEl = document.getElementById('liveArgDate');
+        if (clockEl) clockEl.textContent = timeFull;
+        if (dateEl) dateEl.textContent = longDateStr;
+        updateLiveShiftCounter();
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Cuando el usuario vuelve a entrar a la pestaña o desbloquea el celular, actualiza al instante
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          updateClock();
+          renderLiveShiftBar();
+        }
+      });
+      window.addEventListener('focus', () => {
+        updateClock();
+        renderLiveShiftBar();
+      });
+      window.addEventListener('pageshow', () => {
+        updateClock();
+        renderLiveShiftBar();
+      });
+
+      // Botones rápidos debajo del reloj
+      document.getElementById('btnQuickOpenManual').addEventListener('click', () => {
+        setFormMode('worked');
+        document.getElementById('sectionForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      document.getElementById('btnQuickMarkNonWorked').addEventListener('click', () => {
+        document.getElementById('inputDate').value = getArgentinaNowParts().dateStr;
+        setFormMode('non_worked');
+        document.getElementById('sectionForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      // Pestañas Día Trabajado / Día No Trabajado
+      document.getElementById('tabTypeWorked').addEventListener('click', () => setFormMode('worked'));
+      document.getElementById('tabTypeNonWorked').addEventListener('click', () => setFormMode('non_worked'));
+
+      // Fechas Hoy y Ayer
+      document.getElementById('btnDateToday').addEventListener('click', () => {
+        document.getElementById('inputDate').value = getArgentinaNowParts().dateStr;
+        updateFormPreview();
+      });
+      document.getElementById('btnDateYesterday').addEventListener('click', () => {
+        const { dateStr: todayIso } = getArgentinaNowParts();
+        const [y, m, d] = todayIso.split('-').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+        dt.setUTCDate(dt.getUTCDate() - 1);
+        const iso = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+        document.getElementById('inputDate').value = iso;
+        updateFormPreview();
+      });
+
+      // Botones de Hora
+      document.getElementById('btnSetStartNow').addEventListener('click', () => {
+        document.getElementById('inputStartTime').value = getArgentinaNowParts().timeShort;
+        updateFormPreview();
+      });
+      document.getElementById('btnSetEndNow').addEventListener('click', () => {
+        document.getElementById('inputEndTime').value = getArgentinaNowParts().timeShort;
+        updateFormPreview();
+      });
+
+      document.querySelectorAll('.quick-start-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.getElementById('inputStartTime').value = btn.getAttribute('data-quick-start');
+          updateFormPreview();
+        });
+      });
+      document.querySelectorAll('.quick-end-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.getElementById('inputEndTime').value = btn.getAttribute('data-quick-end');
+          updateFormPreview();
+        });
+      });
+
+      ['inputDate', 'inputStartTime', 'inputEndTime', 'inputBreakMinutes', 'inputRate', 'inputNonWorkedReason'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', updateFormPreview);
+          el.addEventListener('change', updateFormPreview);
+        }
+      });
+
+      document.getElementById('btnResetForm').addEventListener('click', resetFormToDefault);
+
+      // Guardar formulario manual
+      document.getElementById('shiftForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('editRecordId').value;
+        const dateVal = document.getElementById('inputDate').value || getArgentinaNowParts().dateStr;
+        const dayInfo = getDayInfoFromDateStr(dateVal);
+        const notesVal = document.getElementById('inputNotes').value.trim();
+        const id = editId || `reg_${dateVal}_${Date.now()}`;
+
+        if (state.formMode === 'non_worked') {
+          const reasonVal = document.getElementById('inputNonWorkedReason').value;
+          const record = {
+            id,
+            date: dateVal,
+            dayName: dayInfo.dayName,
+            type: 'non_worked',
+            reason: reasonVal,
+            startTime: null,
+            endTime: null,
+            breakMinutes: 0,
+            totalMinutes: 0,
+            decimalHours: 0,
+            durationLabel: '0h 00m',
+            hourlyRate: state.hourlyRate,
+            totalAmount: 0,
+            paidStatus: 'none',
+            notes: notesVal,
+            worker: 'Ignacio',
+            employer: 'Juan',
+            business: 'Punto Bici',
+            updatedAt: Date.now()
+          };
+          await saveRecordToFirebase(record);
+          showToast(`Día no trabajado (${dayInfo.dayName}) guardado`);
+          resetFormToDefault();
+          return;
+        }
+
+        const startVal = document.getElementById('inputStartTime').value;
+        const endVal = document.getElementById('inputEndTime').value;
+        const breakVal = Number(document.getElementById('inputBreakMinutes').value) || 0;
+        const rateVal = Number(document.getElementById('inputRate').value) || state.hourlyRate;
+        const paidStatus = document.getElementById('inputPaidStatus').value || 'pending';
+
+        const calc = calculateShiftMetrics(startVal, endVal, breakVal, rateVal);
+        if (calc.totalMinutes <= 0) {
+          showToast('Revisá la hora de entrada y salida');
+          return;
+        }
+
+        const record = {
+          id,
+          date: dateVal,
+          dayName: dayInfo.dayName,
+          type: 'worked',
+          startTime: startVal,
+          endTime: endVal,
+          breakMinutes: breakVal,
+          totalMinutes: calc.totalMinutes,
+          decimalHours: Number(calc.decimalHours.toFixed(4)),
+          durationLabel: calc.durationLabel,
+          hourlyRate: rateVal,
+          totalAmount: calc.totalAmount,
+          paidStatus,
+          notes: notesVal,
+          worker: 'Ignacio',
+          employer: 'Juan',
+          business: 'Punto Bici',
+          updatedAt: Date.now()
+        };
+
+        await saveRecordToFirebase(record);
+        showToast(`Guardado: ${calc.durationLabel} = ${formatARS(calc.totalAmount)}`);
+        resetFormToDefault();
+      });
+
+      // INICIAR RELOJ EN VIVO (PERSISTENTE AUNQUE CIERRE LA APP)
+      document.getElementById('btnStartLiveShift').addEventListener('click', async () => {
+        const { dateStr: todayIso, timeShort } = getArgentinaNowParts();
+        const dInfo = getDayInfoFromDateStr(todayIso);
+        const liveObj = {
+          active: true,
+          startTimestampMs: Date.now(),
+          startDateStr: todayIso,
+          startTimeStr: timeShort,
+          dayName: dInfo.dayName,
+          updatedAt: Date.now()
+        };
+        await syncLiveShiftToFirebase(liveObj);
+        showToast(`Reloj iniciado a las ${timeShort} hs. Sigue contando aunque cierres la app.`);
+      });
+
+      // CORREGIR HORA DE ENTRADA DEL RELOJ EN VIVO
+      document.getElementById('btnAdjustLiveStart').addEventListener('click', () => {
+        if (!state.liveShift) return;
+        document.getElementById('inputAdjustLiveTime').value = state.liveShift.startTimeStr || '08:00';
+        const modal = document.getElementById('modalAdjustLive');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      });
+      document.getElementById('btnCloseAdjustLive').addEventListener('click', () => {
+        const modal = document.getElementById('modalAdjustLive');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+      document.getElementById('btnSaveAdjustLive').addEventListener('click', async () => {
+        if (!state.liveShift) return;
+        const newTimeStr = document.getElementById('inputAdjustLiveTime').value || '08:00';
+        const newStartMs = argentinaDateTimeToTimestampMs(state.liveShift.startDateStr, newTimeStr);
+        const updatedShift = {
+          ...state.liveShift,
+          active: true,
+          startTimeStr: newTimeStr,
+          startTimestampMs: newStartMs,
+          updatedAt: Date.now()
+        };
+        await syncLiveShiftToFirebase(updatedShift);
+        const modal = document.getElementById('modalAdjustLive');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        showToast(`Hora de entrada ajustada a las ${newTimeStr} hs`);
+      });
+
+      // TERMINAR RELOJ EN VIVO Y GUARDAR EL DÍA
+      document.getElementById('btnFinishLiveShift').addEventListener('click', async () => {
+        if (!state.liveShift || !state.liveShift.active) return;
+        const { timeShort } = getArgentinaNowParts();
+        const startIso = state.liveShift.startDateStr;
+        const startTime = state.liveShift.startTimeStr;
+        const elapsedMins = Math.max(1, Math.round((Date.now() - Number(state.liveShift.startTimestampMs)) / 60000));
+
+        const hInt = Math.floor(elapsedMins / 60);
+        const mInt = elapsedMins % 60;
+        const decHours = elapsedMins / 60;
+        const totalAmount = Math.round(decHours * state.hourlyRate);
+        const durationLabel = `${hInt}h ${String(mInt).padStart(2, '0')}m`;
+
+        const dInfo = getDayInfoFromDateStr(startIso);
+        const record = {
+          id: `reg_${startIso}_${Date.now()}`,
+          date: startIso,
+          dayName: dInfo.dayName,
+          type: 'worked',
+          startTime,
+          endTime: timeShort,
+          breakMinutes: 0,
+          totalMinutes: elapsedMins,
+          decimalHours: Number(decHours.toFixed(4)),
+          durationLabel,
+          hourlyRate: state.hourlyRate,
+          totalAmount,
+          paidStatus: 'pending',
+          notes: 'Calculado con el reloj en vivo en Punto Bici',
+          worker: 'Ignacio',
+          employer: 'Juan',
+          business: 'Punto Bici',
+          updatedAt: Date.now()
+        };
+
+        await saveRecordToFirebase(record);
+        await syncLiveShiftToFirebase(null);
+        showToast(`¡Día terminado! Trabajaste ${durationLabel} = ${formatARS(totalAmount)}`);
+      });
+
+      document.getElementById('btnCancelLiveShift').addEventListener('click', () => {
+        openConfirmModal(
+          'Apagar reloj sin guardar',
+          '¿Querés cancelar el reloj que está corriendo sin guardar las horas de hoy?',
+          async () => {
+            await syncLiveShiftToFirebase(null);
+            showToast('Reloj cancelado');
+          }
+        );
+      });
+
+      // Navegación de semanas
+      document.getElementById('btnPrevWeek').addEventListener('click', () => {
+        state.periodMode = 'week';
+        state.weekOffset -= 1;
+        updatePeriodButtonsUI();
+        renderAll();
+      });
+      document.getElementById('btnNextWeek').addEventListener('click', () => {
+        state.periodMode = 'week';
+        state.weekOffset += 1;
+        updatePeriodButtonsUI();
+        renderAll();
+      });
+
+      document.querySelectorAll('.period-filter-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = btn.getAttribute('data-period');
+          state.periodMode = p;
+          if (p === 'week') state.weekOffset = 0;
+          updatePeriodButtonsUI();
+          renderAll();
+        });
+      });
+
+      document.getElementById('filterTypeSelect').addEventListener('change', (e) => {
+        state.filterType = e.target.value;
+        renderAll();
+      });
+
+      // Marcar pendientes como pagados por Juan
+      document.getElementById('btnMarkPeriodPaid').addEventListener('click', () => {
+        const pendingList = getFilteredRecords().filter((r) => r.type === 'worked' && r.paidStatus !== 'paid');
+        if (pendingList.length === 0) {
+          showToast('Ya están todos los días marcados como pagados');
+          return;
+        }
+        const sumPending = pendingList.reduce((acc, r) => acc + (Number(r.totalAmount) || 0), 0);
+        openConfirmModal(
+          'Marcar como pagado por Juan',
+          `¿Confirmás que Juan ya te pagó los ${pendingList.length} días pendientes (${formatARS(sumPending)})?`,
+          async () => {
+            for (const rec of pendingList) {
+              rec.paidStatus = 'paid';
+              rec.updatedAt = Date.now();
+              await saveRecordToFirebase(rec);
+            }
+            showToast(`¡Listo! ${formatARS(sumPending)} marcados como cobrados`);
+          }
+        );
+      });
+
+      // Resumen para Juan
+      document.getElementById('btnOpenSummaryModal').addEventListener('click', () => {
+        document.getElementById('summaryReceiptText').textContent = buildSummaryReceiptText();
+        const modal = document.getElementById('modalSummary');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      });
+      document.getElementById('btnCloseSummaryModal').addEventListener('click', () => {
+        const modal = document.getElementById('modalSummary');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+      document.getElementById('btnCopySummary').addEventListener('click', async () => {
+        const text = document.getElementById('summaryReceiptText').textContent;
+        const ok = await copyTextSafe(text);
+        if (ok) showToast('¡Copiado! Ya podés pegarlo en el WhatsApp de Juan');
+      });
+      document.getElementById('btnPrintSummary').addEventListener('click', () => {
+        window.print();
+      });
+
+      // Valor Hora Modal
+      document.getElementById('btnOpenRateModal').addEventListener('click', () => {
+        document.getElementById('modalRateInput').value = String(state.hourlyRate);
+        const modal = document.getElementById('modalRate');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      });
+      document.getElementById('btnCloseRateModal').addEventListener('click', () => {
+        const modal = document.getElementById('modalRate');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+      document.getElementById('btnSaveRateModal').addEventListener('click', async () => {
+        const val = Number(document.getElementById('modalRateInput').value) || 5000;
+        await saveHourlyRateSetting(val);
+        const modal = document.getElementById('modalRate');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+
+      // Confirm Modal
+      document.getElementById('btnConfirmCancel').addEventListener('click', closeConfirmModal);
+      document.getElementById('btnConfirmAccept').addEventListener('click', async () => {
+        const fn = state.confirmCallback;
+        closeConfirmModal();
+        if (typeof fn === 'function') await fn();
+      });
+
+      // Sincronizar
+      document.getElementById('btnForceSync').addEventListener('click', async () => {
+        setSyncStatus('syncing', 'Sincronizando...');
+        const ok = await fetchFromFirebaseRest();
+        showToast(ok ? 'Sincronizado con Firebase' : 'Guardado en memoria');
+      });
+
+      // Exportar CSV
+      document.getElementById('btnExportCSV').addEventListener('click', exportFilteredToCSV);
+
+      updateFormPreview();
+      initFirebaseRealtime();
+    }
+
+    setupApp();
+  </script>
+</body>
+</html>
